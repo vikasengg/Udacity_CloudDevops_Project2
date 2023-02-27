@@ -1,0 +1,22 @@
+[
+    {
+        "ParameterKey": "EnvironmentName", 
+        "ParameterValue": "UdacityProject2vikas"
+    },
+    {
+        "ParameterKey": "AppserverMinSize", 
+        "ParameterValue": "2"
+    },
+    {
+		"ParameterKey": "AppserverMaxSize",
+		"ParameterValue": "3"
+	},
+    {
+		"ParameterKey": "myAppserAMI",
+		"ParameterValue": "ami-090717c950a5c34d3"
+	},
+    {
+		"ParameterKey": "myAppserInstanceType",
+		"ParameterValue": "t2.medium"
+	}
+]

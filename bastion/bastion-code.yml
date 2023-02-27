@@ -1,0 +1,144 @@
+Description: This is the Bastion server creation script to create Bastion EC2 instance in public cloud to SSH into Private DB2 instance. 
+Parameters: 
+  EnvironmentName:
+    Description: An Environment Name that will be prefixed to all resources being created. 
+    Type: String
+  myIPaddress: 
+    Description: This is the public I.P. Address to connect to the BASTION EC2 Instance.
+    Type: String
+    Default: 106.223.126.37/32
+  myBastionEC2keyName:
+    Description: This parameter will contain the name of Bastion EC2 PEM key file stored on my local machine 
+    Type: String
+  myAppserkeyName:
+    Description: This parameter will contain the name of application server PEM key file stored on S3 bucket 
+    Type: String
+  myS3Bucket:
+    Description: This parameter will contain the name of S3 bucket where the PEM key for App Server is stored
+    Type: String
+Resources:
+# IAM Role to allow Bastion host EC2 to download Key file
+  BastionEC2S3ReadOnlyEC2: 
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: / 
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# Instance Profile
+  BastionEC2InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: /  
+      Roles:
+        - !Ref BastionEC2S3ReadOnlyEC2
+
+# Bastion EC2 instance Security Role Group 
+  BastionEC2SecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Bastion host to be connected from my I.P. via SSH and allow SSH into EC2 server present in Private instance
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref myIPaddress
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
+
+  BastionEC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            sudo apt-get update -y
+            sudo apt-get install unzip awscli -y
+            cd /home/ubuntu
+            sudo mkdir keyfile
+            cd /home/ubuntu/keyfile
+            aws s3 cp s3://${myS3Bucket}/${myAppserkeyName}.pem  .
+            chmod 400 ${myAppserkeyName}.pem
+        SubnetId:
+          Fn::ImportValue: !Sub '${EnvironmentName}-PUB1-SN'
+        ImageId: ami-090717c950a5c34d3
+        InstanceType: t2.micro
+        KeyName: !Ref myBastionEC2keyName
+        IamInstanceProfile: !Ref BastionEC2InstanceProfile
+        SecurityGroupIds:
+          - Ref: BastionEC2SecGroup
+
+  BastionEIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: 
+        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
+      InstanceId: !Ref BastionEC2Instance1
+
+  BastionEIPAssociation1:
+      Type: AWS::EC2::EIPAssociation
+      Properties:
+       InstanceId: !Ref BastionEC2Instance1
+       AllocationId: !GetAtt BastionEIP1.AllocationId
+
+  BastionEC2Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            sudo apt-get update -y
+            sudo apt-get install unzip awscli -y
+            cd /home/ubuntu
+            sudo mkdir keyfile
+            cd /home/ubuntu/keyfile
+            aws s3 cp s3://${myS3Bucket}/${myAppserkeyName}.pem  .
+            chmod 400 ${myAppserkeyName}.pem
+        SubnetId:
+          Fn::ImportValue: !Sub '${EnvironmentName}-PUB1-SN'
+        ImageId: ami-090717c950a5c34d3
+        InstanceType: t2.micro
+        KeyName: !Ref myBastionEC2keyName
+        IamInstanceProfile: !Ref BastionEC2InstanceProfile
+        SecurityGroupIds:
+          - Ref: BastionEC2SecGroup
+
+  BastionEIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: 
+        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
+      InstanceId: !Ref BastionEC2Instance2
+
+  BastionEIPAssociation2:
+      Type: AWS::EC2::EIPAssociation
+      Properties:
+       InstanceId: !Ref BastionEC2Instance2
+       AllocationId: !GetAtt BastionEIP2.AllocationId
+
+Outputs:    
+  BastionEC2CIDR1:
+    Description: The CIDR for first Bastion EC2 is
+    Value: !Join ['', [!GetAtt BastionEC2Instance1.PrivateIp, !Sub '/32']]
+    Export:
+      Name: !Sub ${EnvironmentName}-BastionEC2-CIDR1
+  BastionEC2CIDR2:
+    Description: The CIDR for second Bastion EC2 is
+    Value: !Join ['', [!GetAtt BastionEC2Instance2.PrivateIp, !Sub '/32']]
+    Export:
+      Name: !Sub ${EnvironmentName}-BastionEC2-CIDR2

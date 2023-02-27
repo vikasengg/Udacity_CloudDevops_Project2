@@ -1,0 +1,1 @@
+aws cloudformation update-stack --stack-name udacity-p2-vikas-stack-$1 --template-body file://$1/$1-code.yml  --parameters file://$1/$1-params.json --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM" --region=us-west-2

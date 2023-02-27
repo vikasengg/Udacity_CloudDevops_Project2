@@ -1,0 +1,1 @@
+aws cloudformation delete-stack --stack-name udacity-p2-vikas-stack-$1

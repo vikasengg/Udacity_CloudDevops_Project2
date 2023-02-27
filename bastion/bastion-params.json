@@ -1,0 +1,22 @@
+[
+    {
+        "ParameterKey": "EnvironmentName", 
+        "ParameterValue": "UdacityProject2vikas"
+    },
+    {
+        "ParameterKey": "myIPaddress", 
+        "ParameterValue": "106.223.126.37/32"
+    },
+    {
+		"ParameterKey": "myBastionEC2keyName",
+		"ParameterValue": "bastion-key-proj2"
+	  },
+    {
+		"ParameterKey": "myAppserkeyName",
+		"ParameterValue": "appserver-key-proj2"
+	  },
+    {
+		"ParameterKey": "myS3Bucket",
+		"ParameterValue": "my-bucket-udacity-project2-vikas"
+	  }
+]
